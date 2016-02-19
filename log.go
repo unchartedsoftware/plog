@@ -10,10 +10,10 @@ import (
 )
 
 const (
+	// DebugLevel logging is for development level logging.
+	DebugLevel = 1
 	// InfoLevel logging is for high granularity development logging events.
-	InfoLevel = 1
-	// DebugLevel logging is for development level logging and common events.
-	DebugLevel = 2
+	InfoLevel = 2
 	// WarnLevel logging is for unexpected and recoverable events.
 	WarnLevel = 3
 	// ErrorLevel logging is for unexpected and unrecoverable fatal events.
@@ -105,10 +105,10 @@ func Error(args ...interface{}) {
 // SetLevel sets the current logging output level.
 func SetLevel(level int) {
 	switch level {
-	case InfoLevel:
-		log.Level = logrus.InfoLevel
 	case DebugLevel:
 		log.Level = logrus.DebugLevel
+	case InfoLevel:
+		log.Level = logrus.InfoLevel
 	case WarnLevel:
 		log.Level = logrus.WarnLevel
 	case ErrorLevel:
