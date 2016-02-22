@@ -24,16 +24,16 @@ import (
 )
 
 func main() {   
-    log.Info("This is an info level log")
     log.Debug("This is a debug level log")
+    log.Info("This is an info level log")
     log.Warn("This is a warn level log")
     log.Error("This is an error level log")
 
     // only log warnings and errors
     log.SetLevel(log.WarnLevel)
 
-    log.Info("This is an info level log, I will be ignored")
-    log.Debug("This is a debug level log, I too shall be ignored")
+    log.Debug("This is an info level log, I will be ignored")
+    log.Info("This is a debug level log, I too shall be ignored")
     log.Warn("This is a warn level log, you will see me")
     log.Error("This is an error level log, you will see me")
 }
