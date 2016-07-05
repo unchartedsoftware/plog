@@ -31,8 +31,13 @@ func getLogger() *logrus.Logger {
 
 func retrieveCallInfo() string {
 	pc, file, line, _ := runtime.Caller(2)
+	// get full path to file
+	fullpath := runtime.FuncForPC(pc).Name()
+	// strip out vendor path if it exists
+	parts := strings.Split(fullpath, "/vendor/")
+	pckg := parts[len(parts) - 1]
 	// get package name
-	parts := strings.Split(runtime.FuncForPC(pc).Name(), "/")
+	parts = strings.Split(pckg, "/")
 	lastIndex := len(parts) - 1
 	index := 3 // domain/company/root
 	if index > lastIndex {
