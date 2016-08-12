@@ -1,9 +1,11 @@
 package log
 
 import (
+	"bytes"
 	"fmt"
 	"path"
 	"runtime"
+	"strconv"
 	"strings"
 
 	"github.com/Sirupsen/logrus"
@@ -20,13 +22,24 @@ const (
 	ErrorLevel = 4
 )
 
-var log = getLogger()
+var (
+	log = getLogger()
+	showRoutineID = false
+)
 
 func getLogger() *logrus.Logger {
 	log := logrus.New()
 	log.Formatter = new(PrettyFormatter)
 	log.Level = logrus.DebugLevel
 	return log
+}
+
+func getGoroutineID() (uint64, error) {
+	b := make([]byte, 64)
+	b = b[:runtime.Stack(b, false)]
+	b = bytes.TrimPrefix(b, []byte("goroutine "))
+	b = b[:bytes.IndexByte(b, ' ')]
+	return strconv.ParseUint(string(b), 10, 64)
 }
 
 func retrieveCallInfo() string {
@@ -48,6 +61,13 @@ func retrieveCallInfo() string {
 	packageName := strings.Join(parts[index:], "/")
 	// get file name
 	_, fileName := path.Split(file)
+	// determine whether or not to show goroutine id
+	if (showRoutineID) {
+		gid, err := getGoroutineID()
+		if err == nil {
+			return fmt.Sprint(packageName, "/", fileName, ":", line, ", gid:", gid)
+		}
+	}
 	return fmt.Sprint(packageName, "/", fileName, ":", line)
 }
 
@@ -119,4 +139,12 @@ func SetLevel(level int) {
 	case ErrorLevel:
 		log.Level = logrus.ErrorLevel
 	}
+}
+
+func ShowGoRoutineID() {
+	showRoutineID = true
+}
+
+func HideGoRoutineID() {
+	showRoutineID = false
 }
