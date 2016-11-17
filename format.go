@@ -17,7 +17,6 @@ var (
 
 func formatLog(level int, msg string, fileinfo string) []byte {
 	b := &bytes.Buffer{}
-	//isColored := isTerminal && (runtime.GOOS != "windows")
 	if isColored {
 		printColored(b, level, msg, fileinfo)
 	} else {

@@ -71,14 +71,14 @@ func sprint(args ...interface{}) string {
 	return msg[:len(msg)-1]
 }
 
-func logf(level int, format string, args ...interface{}) {
+func writeOutputf(level int, format string, args ...interface{}) {
 	writer := bufio.NewWriter(output)
 	defer writer.Flush()
 	msg := fmt.Sprintf(format, args...)
 	writer.Write(formatLog(level, msg, retrieveCallInfo()))
 }
 
-func log(level int, args ...interface{}) {
+func writeOutput(level int, args ...interface{}) {
 	if level < loggingLevel {
 		return
 	}
@@ -89,42 +89,42 @@ func log(level int, args ...interface{}) {
 
 // Debugf logging is for debug level logging events.
 func Debugf(format string, args ...interface{}) {
-	logf(DebugLevel, format, args...)
+	writeOutputf(DebugLevel, format, args...)
 }
 
 // Infof logging is for high granularity logging events.
 func Infof(format string, args ...interface{}) {
-	logf(InfoLevel, format, args...)
+	writeOutputf(InfoLevel, format, args...)
 }
 
 // Warnf logging is for unexpected and recoverable events.
 func Warnf(format string, args ...interface{}) {
-	logf(WarnLevel, format, args...)
+	writeOutputf(WarnLevel, format, args...)
 }
 
 // Errorf level is for unexpected and unrecoverable fatal events.
 func Errorf(format string, args ...interface{}) {
-	logf(ErrorLevel, format, args...)
+	writeOutputf(ErrorLevel, format, args...)
 }
 
 // Debug logging is for debug level logging events.
 func Debug(args ...interface{}) {
-	log(DebugLevel, args...)
+	writeOutput(DebugLevel, args...)
 }
 
 // Info logging is for high granularity logging events.
 func Info(args ...interface{}) {
-	log(InfoLevel, args...)
+	writeOutput(InfoLevel, args...)
 }
 
 // Warn logging is for unexpected and recoverable events.
 func Warn(args ...interface{}) {
-	log(WarnLevel, args...)
+	writeOutput(WarnLevel, args...)
 }
 
 // Error level is for unexpected and unrecoverable fatal events.
 func Error(args ...interface{}) {
-	log(ErrorLevel, args...)
+	writeOutput(ErrorLevel, args...)
 }
 
 // SetLevel sets the current logging output level.
