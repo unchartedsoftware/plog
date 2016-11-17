@@ -37,7 +37,7 @@ func getGoroutineID() (uint64, error) {
 }
 
 func retrieveCallInfo() string {
-	pc, file, line, _ := runtime.Caller(2)
+	pc, file, line, _ := runtime.Caller(3)
 	// get full path to file
 	fullpath := runtime.FuncForPC(pc).Name()
 	// strip out vendor path if it exists
