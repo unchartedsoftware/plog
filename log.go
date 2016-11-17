@@ -1,14 +1,14 @@
 package log
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
+	"os"
 	"path"
 	"runtime"
 	"strconv"
 	"strings"
-
-	"github.com/Sirupsen/logrus"
 )
 
 const (
@@ -23,16 +23,10 @@ const (
 )
 
 var (
-	log = getLogger()
 	showRoutineID = false
+	loggingLevel  = DebugLevel
+	output        = os.Stdout
 )
-
-func getLogger() *logrus.Logger {
-	log := logrus.New()
-	log.Formatter = new(PrettyFormatter)
-	log.Level = logrus.DebugLevel
-	return log
-}
 
 func getGoroutineID() (uint64, error) {
 	b := make([]byte, 64)
@@ -48,7 +42,7 @@ func retrieveCallInfo() string {
 	fullpath := runtime.FuncForPC(pc).Name()
 	// strip out vendor path if it exists
 	parts := strings.Split(fullpath, "/vendor/")
-	pckg := parts[len(parts) - 1]
+	pckg := parts[len(parts)-1]
 	// get package name
 	parts = strings.Split(pckg, "/")
 	lastIndex := len(parts) - 1
@@ -62,7 +56,7 @@ func retrieveCallInfo() string {
 	// get file name
 	_, fileName := path.Split(file)
 	// determine whether or not to show goroutine id
-	if (showRoutineID) {
+	if showRoutineID {
 		gid, err := getGoroutineID()
 		if err == nil {
 			return fmt.Sprint(packageName, "/", fileName, ":", line, ", gid:", gid)
@@ -71,80 +65,89 @@ func retrieveCallInfo() string {
 	return fmt.Sprint(packageName, "/", fileName, ":", line)
 }
 
-// Infof logging is for high granularity development logging events.
-func Infof(format string, args ...interface{}) {
-	log.WithFields(logrus.Fields{
-		"fileinfo": retrieveCallInfo(),
-	}).Infof(format, args...)
+func sprint(args ...interface{}) string {
+	// ensure that spaces are put between ALL operands
+	msg := fmt.Sprintln(args...)
+	return msg[:len(msg)-1]
 }
 
-// Debugf logging is for development level logging events.
+func logf(level int, format string, args ...interface{}) {
+	writer := bufio.NewWriter(output)
+	defer writer.Flush()
+	msg := fmt.Sprintf(format, args...)
+	writer.Write(formatLog(level, msg, retrieveCallInfo()))
+}
+
+func log(level int, args ...interface{}) {
+	if level < loggingLevel {
+		return
+	}
+	writer := bufio.NewWriter(output)
+	defer writer.Flush()
+	writer.Write(formatLog(level, sprint(args...), retrieveCallInfo()))
+}
+
+// Debugf logging is for debug level logging events.
 func Debugf(format string, args ...interface{}) {
-	log.WithFields(logrus.Fields{
-		"fileinfo": retrieveCallInfo(),
-	}).Debugf(format, args...)
+	logf(DebugLevel, format, args...)
+}
+
+// Infof logging is for high granularity logging events.
+func Infof(format string, args ...interface{}) {
+	logf(InfoLevel, format, args...)
 }
 
 // Warnf logging is for unexpected and recoverable events.
 func Warnf(format string, args ...interface{}) {
-	log.WithFields(logrus.Fields{
-		"fileinfo": retrieveCallInfo(),
-	}).Warnf(format, args...)
+	logf(WarnLevel, format, args...)
 }
 
 // Errorf level is for unexpected and unrecoverable fatal events.
 func Errorf(format string, args ...interface{}) {
-	log.WithFields(logrus.Fields{
-		"fileinfo": retrieveCallInfo(),
-	}).Errorf(format, args...)
+	logf(ErrorLevel, format, args...)
 }
 
-// Info logging is for high granularity development logging events.
-func Info(args ...interface{}) {
-	log.WithFields(logrus.Fields{
-		"fileinfo": retrieveCallInfo(),
-	}).Info(args...)
-}
-
-// Debug logging is for development level logging events.
+// Debug logging is for debug level logging events.
 func Debug(args ...interface{}) {
-	log.WithFields(logrus.Fields{
-		"fileinfo": retrieveCallInfo(),
-	}).Debug(args...)
+	log(DebugLevel, args...)
+}
+
+// Info logging is for high granularity logging events.
+func Info(args ...interface{}) {
+	log(InfoLevel, args...)
 }
 
 // Warn logging is for unexpected and recoverable events.
 func Warn(args ...interface{}) {
-	log.WithFields(logrus.Fields{
-		"fileinfo": retrieveCallInfo(),
-	}).Warn(args...)
+	log(WarnLevel, args...)
 }
 
 // Error level is for unexpected and unrecoverable fatal events.
 func Error(args ...interface{}) {
-	log.WithFields(logrus.Fields{
-		"fileinfo": retrieveCallInfo(),
-	}).Error(args...)
+	log(ErrorLevel, args...)
 }
 
 // SetLevel sets the current logging output level.
 func SetLevel(level int) {
+	loggingLevel = level
 	switch level {
 	case DebugLevel:
-		log.Level = logrus.DebugLevel
+		loggingLevel = level
 	case InfoLevel:
-		log.Level = logrus.InfoLevel
+		loggingLevel = level
 	case WarnLevel:
-		log.Level = logrus.WarnLevel
+		loggingLevel = level
 	case ErrorLevel:
-		log.Level = logrus.ErrorLevel
+		loggingLevel = level
 	}
 }
 
+// ShowGoRoutineID enables appending the goroutine ID to the log output.
 func ShowGoRoutineID() {
 	showRoutineID = true
 }
 
+// HideGoRoutineID disables appending the goroutine ID to the log output.
 func HideGoRoutineID() {
 	showRoutineID = false
 }

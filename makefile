@@ -6,29 +6,22 @@ all:
 	@echo "make <cmd>"
 	@echo ""
 	@echo "commands:"
-	@echo "  build         - build the dist binary"
+	@echo "  build         - build the source code"
 	@echo "  lint          - lint the source code"
-	@echo "  test          - test the source code"
 	@echo "  fmt           - format the code with gofmt"
-	@echo "  clean         - clean the dist build"
-	@echo ""
-	@echo "  deps          - pull and setup dependencies"
-
-clean:
-	@rm -rf ./build
+	@echo "  install       - install dependencies"
 
 lint:
-	@go vet ./...
-	@golint ./...
-
-test:
-	@go test ./...
+	@go vet $(shell glide novendor)
+	@go list ./... | grep -v /vendor/ | xargs -L1 golint
 
 fmt:
-	@gofmt -l -w .
+	@go fmt $(shell glide novendor)
 
-build: clean lint
-	@go build ./...
+build: lint
+	@go build $(shell glide novendor)
 
-deps:
+install:
 	@go get github.com/golang/lint/golint
+	@go get github.com/Masterminds/glide
+	@glide install
