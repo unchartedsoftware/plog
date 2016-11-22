@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 const (
@@ -26,6 +27,7 @@ var (
 	showRoutineID = false
 	loggingLevel  = DebugLevel
 	output        = os.Stdout
+	mu            = &sync.Mutex{}
 )
 
 func getGoroutineID() (uint64, error) {
@@ -75,6 +77,8 @@ func writeOutputf(level int, format string, args ...interface{}) {
 	writer := bufio.NewWriter(output)
 	defer writer.Flush()
 	msg := fmt.Sprintf(format, args...)
+	mu.Lock()
+	defer mu.Unlock()
 	writer.Write(formatLog(level, msg, retrieveCallInfo()))
 }
 
@@ -84,6 +88,8 @@ func writeOutput(level int, args ...interface{}) {
 	}
 	writer := bufio.NewWriter(output)
 	defer writer.Flush()
+	mu.Lock()
+	defer mu.Unlock()
 	writer.Write(formatLog(level, sprint(args...), retrieveCallInfo()))
 }
 
