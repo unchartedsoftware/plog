@@ -74,11 +74,14 @@ func sprint(args ...interface{}) string {
 }
 
 func writeOutputf(level int, format string, args ...interface{}) {
-	writer := bufio.NewWriter(output)
-	defer writer.Flush()
-	msg := fmt.Sprintf(format, args...)
+	if level < loggingLevel {
+		return
+	}
 	mu.Lock()
-	defer mu.Unlock()
+	writer := bufio.NewWriter(output)
+	msg := fmt.Sprintf(format, args...)
+	defer mu.Unlock()    // then unlock
+	defer writer.Flush() // flush first
 	writer.Write(formatLog(level, msg, retrieveCallInfo()))
 }
 
@@ -86,10 +89,10 @@ func writeOutput(level int, args ...interface{}) {
 	if level < loggingLevel {
 		return
 	}
-	writer := bufio.NewWriter(output)
-	defer writer.Flush()
 	mu.Lock()
-	defer mu.Unlock()
+	writer := bufio.NewWriter(output)
+	defer mu.Unlock()    // then unlock
+	defer writer.Flush() // flush first
 	writer.Write(formatLog(level, sprint(args...), retrieveCallInfo()))
 }
 
