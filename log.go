@@ -138,7 +138,9 @@ func Error(args ...interface{}) {
 
 // SetLevel sets the current logging output level.
 func SetLevel(level int) {
-	loggingLevel = level
+	mu.Lock()
+	defer mu.Unlock()
+	// only set if valid argument
 	switch level {
 	case DebugLevel:
 		loggingLevel = level
@@ -153,10 +155,14 @@ func SetLevel(level int) {
 
 // ShowGoRoutineID enables appending the goroutine ID to the log output.
 func ShowGoRoutineID() {
+	mu.Lock()
+	defer mu.Unlock()
 	showRoutineID = true
 }
 
 // HideGoRoutineID disables appending the goroutine ID to the log output.
 func HideGoRoutineID() {
+	mu.Lock()
+	defer mu.Unlock()
 	showRoutineID = false
 }

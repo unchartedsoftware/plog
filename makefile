@@ -22,6 +22,6 @@ build: lint
 	@go build $(shell glide novendor)
 
 install:
-	@go get github.com/golang/lint/golint
-	@go get github.com/Masterminds/glide
+	@go get -u github.com/golang/lint/golint
+	@go get -u github.com/Masterminds/glide
 	@glide install
