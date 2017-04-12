@@ -15,7 +15,7 @@ var (
 	isColored  = isTerminal && (runtime.GOOS != "windows")
 )
 
-func formatLog(level int, msg string, fileinfo string) []byte {
+func formatLog(level Level, msg string, fileinfo string) []byte {
 	b := &bytes.Buffer{}
 	if isColored {
 		printColored(b, level, msg, fileinfo)
@@ -26,7 +26,7 @@ func formatLog(level int, msg string, fileinfo string) []byte {
 	return b.Bytes()
 }
 
-func getLevelString(level int) string {
+func getLevelString(level Level) string {
 	switch level {
 	case InfoLevel:
 		return " INFO "
@@ -39,7 +39,7 @@ func getLevelString(level int) string {
 	}
 }
 
-func getLevelColor(level int) string {
+func getLevelColor(level Level) string {
 	switch level {
 	case InfoLevel:
 		return ansi.Reset
@@ -52,7 +52,7 @@ func getLevelColor(level int) string {
 	}
 }
 
-func printColored(b *bytes.Buffer, level int, msg string, fileinfo string) {
+func printColored(b *bytes.Buffer, level Level, msg string, fileinfo string) {
 	levelText := getLevelString(level)
 	levelColor := getLevelColor(level)
 	// write log message to buffer
@@ -69,7 +69,7 @@ func printColored(b *bytes.Buffer, level int, msg string, fileinfo string) {
 		ansi.Reset)
 }
 
-func printUncolored(b *bytes.Buffer, level int, msg string, fileinfo string) {
+func printUncolored(b *bytes.Buffer, level Level, msg string, fileinfo string) {
 	levelText := getLevelString(level)
 	// write log message to buffer
 	fmt.Fprintf(b, "[ %s ] [%s] %s (%s)",
