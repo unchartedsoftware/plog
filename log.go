@@ -12,25 +12,121 @@ import (
 	"sync"
 )
 
+var (
+	logger = NewLogger()
+	output = os.Stdout
+)
+
 const (
 	// DebugLevel logging is for development level logging.
-	DebugLevel = 1
+	DebugLevel Level = 1
 	// InfoLevel logging is for high granularity development logging events.
-	InfoLevel = 2
+	InfoLevel Level = 2
 	// WarnLevel logging is for unexpected and recoverable events.
-	WarnLevel = 3
+	WarnLevel Level = 3
 	// ErrorLevel logging is for unexpected and unrecoverable fatal events.
-	ErrorLevel = 4
+	ErrorLevel Level = 4
+	// the depth required to provide the correct caller info
+	defaultDepth = 3
 )
 
-var (
-	showRoutineID = false
-	loggingLevel  = DebugLevel
-	output        = os.Stdout
-	mu            = &sync.Mutex{}
-)
+// Level represents the logging level type enumeration.
+type Level int
 
-func getGoroutineID() (uint64, error) {
+// Logger represents a basic logging struct.
+type Logger struct {
+	showRoutineID bool
+	loggingLevel  Level
+	depth         int
+	mu            *sync.Mutex
+}
+
+func init() {
+	logger = NewLogger()
+	logger.depth = defaultDepth + 1 // increment this for global logger
+}
+
+// NewLogger instantiates and returns a new Logger struct.
+func NewLogger() *Logger {
+	return &Logger{
+		loggingLevel: DebugLevel,
+		mu:           &sync.Mutex{},
+		depth:        defaultDepth,
+	}
+}
+
+// Debugf is for debug level logging events.
+func (l *Logger) Debugf(format string, args ...interface{}) {
+	l.writeOutputf(l.depth, DebugLevel, format, args...)
+}
+
+// Infof is for high granularity logging events.
+func (l *Logger) Infof(format string, args ...interface{}) {
+	l.writeOutputf(l.depth, InfoLevel, format, args...)
+}
+
+// Warnf is for unexpected and recoverable events.
+func (l *Logger) Warnf(format string, args ...interface{}) {
+	l.writeOutputf(l.depth, WarnLevel, format, args...)
+}
+
+// Errorf is for unexpected and unrecoverable fatal events.
+func (l *Logger) Errorf(format string, args ...interface{}) {
+	l.writeOutputf(l.depth, ErrorLevel, format, args...)
+}
+
+// Debug is for debug level logging events.
+func (l *Logger) Debug(args ...interface{}) {
+	l.writeOutput(l.depth, DebugLevel, args...)
+}
+
+// Info is for high granularity logging events.
+func (l *Logger) Info(args ...interface{}) {
+	l.writeOutput(l.depth, InfoLevel, args...)
+}
+
+// Warn is for unexpected and recoverable events.
+func (l *Logger) Warn(args ...interface{}) {
+	l.writeOutput(l.depth, WarnLevel, args...)
+}
+
+// Error is for unexpected and unrecoverable fatal events.
+func (l *Logger) Error(args ...interface{}) {
+	l.writeOutput(l.depth, ErrorLevel, args...)
+}
+
+// SetLevel sets the current logging output level.
+func (l *Logger) SetLevel(level Level) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	// only set if valid argument
+	switch level {
+	case DebugLevel:
+		l.loggingLevel = level
+	case InfoLevel:
+		l.loggingLevel = level
+	case WarnLevel:
+		l.loggingLevel = level
+	case ErrorLevel:
+		l.loggingLevel = level
+	}
+}
+
+// ShowGoRoutineID enables appending the goroutine ID to the log output.
+func (l *Logger) ShowGoRoutineID() {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.showRoutineID = true
+}
+
+// HideGoRoutineID disables appending the goroutine ID to the log output.
+func (l *Logger) HideGoRoutineID() {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.showRoutineID = false
+}
+
+func (l *Logger) getGoroutineID() (uint64, error) {
 	b := make([]byte, 64)
 	b = b[:runtime.Stack(b, false)]
 	b = bytes.TrimPrefix(b, []byte("goroutine "))
@@ -38,8 +134,8 @@ func getGoroutineID() (uint64, error) {
 	return strconv.ParseUint(string(b), 10, 64)
 }
 
-func retrieveCallInfo() string {
-	pc, file, line, _ := runtime.Caller(3)
+func (l *Logger) retrieveCallInfo(depth int) string {
+	pc, file, line, _ := runtime.Caller(depth)
 	// get full path to file
 	fullpath := runtime.FuncForPC(pc).Name()
 	// strip out vendor path if it exists
@@ -58,8 +154,8 @@ func retrieveCallInfo() string {
 	// get file name
 	_, fileName := path.Split(file)
 	// determine whether or not to show goroutine id
-	if showRoutineID {
-		gid, err := getGoroutineID()
+	if l.showRoutineID {
+		gid, err := l.getGoroutineID()
 		if err == nil {
 			return fmt.Sprint(packageName, "/", fileName, ":", line, ", gid:", gid)
 		}
@@ -67,102 +163,86 @@ func retrieveCallInfo() string {
 	return fmt.Sprint(packageName, "/", fileName, ":", line)
 }
 
-func sprint(args ...interface{}) string {
+func (l *Logger) sprint(args ...interface{}) string {
 	// ensure that spaces are put between ALL operands
 	msg := fmt.Sprintln(args...)
 	return msg[:len(msg)-1]
 }
 
-func writeOutputf(level int, format string, args ...interface{}) {
-	if level < loggingLevel {
+func (l *Logger) writeOutputf(depth int, level Level, format string, args ...interface{}) {
+	if level < l.loggingLevel {
 		return
 	}
-	mu.Lock()
+	l.mu.Lock()
 	writer := bufio.NewWriter(output)
 	msg := fmt.Sprintf(format, args...)
-	defer mu.Unlock()    // then unlock
+	defer l.mu.Unlock()  // then unlock
 	defer writer.Flush() // flush first
-	writer.Write(formatLog(level, msg, retrieveCallInfo()))
+	writer.Write(formatLog(level, msg, l.retrieveCallInfo(depth)))
 }
 
-func writeOutput(level int, args ...interface{}) {
-	if level < loggingLevel {
+func (l *Logger) writeOutput(depth int, level Level, args ...interface{}) {
+	if level < l.loggingLevel {
 		return
 	}
-	mu.Lock()
+	l.mu.Lock()
 	writer := bufio.NewWriter(output)
-	defer mu.Unlock()    // then unlock
+	defer l.mu.Unlock()  // then unlock
 	defer writer.Flush() // flush first
-	writer.Write(formatLog(level, sprint(args...), retrieveCallInfo()))
+	writer.Write(formatLog(level, l.sprint(args...), l.retrieveCallInfo(depth)))
 }
 
-// Debugf logging is for debug level logging events.
+// Debugf is for debug level logging events.
 func Debugf(format string, args ...interface{}) {
-	writeOutputf(DebugLevel, format, args...)
+	logger.Debugf(format, args...)
 }
 
-// Infof logging is for high granularity logging events.
+// Infof is for high granularity logging events.
 func Infof(format string, args ...interface{}) {
-	writeOutputf(InfoLevel, format, args...)
+	logger.Infof(format, args...)
 }
 
-// Warnf logging is for unexpected and recoverable events.
+// Warnf is for unexpected and recoverable events.
 func Warnf(format string, args ...interface{}) {
-	writeOutputf(WarnLevel, format, args...)
+	logger.Warnf(format, args...)
 }
 
-// Errorf level is for unexpected and unrecoverable fatal events.
+// Errorf is for unexpected and unrecoverable fatal events.
 func Errorf(format string, args ...interface{}) {
-	writeOutputf(ErrorLevel, format, args...)
+	logger.Errorf(format, args...)
 }
 
-// Debug logging is for debug level logging events.
+// Debug is for debug level logging events.
 func Debug(args ...interface{}) {
-	writeOutput(DebugLevel, args...)
+	logger.Debug(args...)
 }
 
-// Info logging is for high granularity logging events.
+// Info is for high granularity logging events.
 func Info(args ...interface{}) {
-	writeOutput(InfoLevel, args...)
+	logger.Info(args...)
 }
 
-// Warn logging is for unexpected and recoverable events.
+// Warn is for unexpected and recoverable events.
 func Warn(args ...interface{}) {
-	writeOutput(WarnLevel, args...)
+	logger.Warn(args...)
 }
 
-// Error level is for unexpected and unrecoverable fatal events.
+// Error is for unexpected and unrecoverable fatal events.
 func Error(args ...interface{}) {
-	writeOutput(ErrorLevel, args...)
+	logger.Error(args...)
 }
 
 // SetLevel sets the current logging output level.
-func SetLevel(level int) {
-	mu.Lock()
-	defer mu.Unlock()
-	// only set if valid argument
-	switch level {
-	case DebugLevel:
-		loggingLevel = level
-	case InfoLevel:
-		loggingLevel = level
-	case WarnLevel:
-		loggingLevel = level
-	case ErrorLevel:
-		loggingLevel = level
-	}
+func SetLevel(level Level) {
+	logger.SetLevel(level)
 }
 
 // ShowGoRoutineID enables appending the goroutine ID to the log output.
 func ShowGoRoutineID() {
-	mu.Lock()
-	defer mu.Unlock()
-	showRoutineID = true
+	logger.ShowGoRoutineID()
 }
 
 // HideGoRoutineID disables appending the goroutine ID to the log output.
 func HideGoRoutineID() {
-	mu.Lock()
-	defer mu.Unlock()
-	showRoutineID = false
+	logger.HideGoRoutineID()
 }

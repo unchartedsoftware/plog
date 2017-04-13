@@ -1,12 +1,14 @@
 hash: c991a1e59291e15d58b8e65e82dccab2bbac06c33df287055d4f807c884bea2a
-updated: 2017-03-17T14:41:08.919376168-04:00
+updated: 2017-04-13T11:41:45.511338208-04:00
 imports:
+- name: github.com/mattn/go-colorable
+  version: ded68f7a9561c023e790de24279db7ebf473ea80
 - name: github.com/mattn/go-isatty
-  version: 30a891c33c7cde7b02a981314b4228ec99380cca
+  version: fc9e8d8ef48496124e79ae0df75490096eccf6fe
 - name: github.com/mgutz/ansi
-  version: c286dcecd19ff979eeb73ea444e479b903f2cfcb
+  version: 9520e82c474b0a04dd04f8a40959027271bab992
 - name: golang.org/x/sys
-  version: 30237cf4eefd639b184d1f2cb77a581ea0be8947
+  version: f3918c30c5c2cb527c0b071a27c35120a6c0719a
   subpackages:
   - unix
 testImports: []
