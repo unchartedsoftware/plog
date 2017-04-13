@@ -42,6 +42,7 @@ import (
 )
 
 func main() {
+	// use global log methods
 	log.Debug("This is a debug level log")
 	log.Info("This", "is", "an", "info", "level", "log")
 	log.Warnf("This is a %s level log", "warn")
@@ -51,8 +52,16 @@ func main() {
 	log.SetLevel(log.WarnLevel)
 
 	log.Debug("This is a debug level log, I will be ignored")
-	log.Info("This is an info level log, I will be ignored too")
+	log.Info("This is an info level log, I will be ignored")
 	log.Warn("This is a warn level log, you will see me")
-	log.Error("This is an error level log, you will see me too")
+	log.Error("This is an error level log, you will see me")
+
+	// create logger instance
+	logger := log.NewLogger()
+	logger.SetLevel(log.ErrorLevel)
+	logger.Debug("This is a debug level log, I will be ignored")
+	logger.Info("This is an info level log, I will be ignored")
+	logger.Warn("This is a warn level log, I will be ignored")
+	logger.Error("This is an error level log, you will see me")
 }
 ```

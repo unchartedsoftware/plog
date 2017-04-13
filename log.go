@@ -26,6 +26,8 @@ const (
 	WarnLevel Level = 3
 	// ErrorLevel logging is for unexpected and unrecoverable fatal events.
 	ErrorLevel Level = 4
+	// the depth required to provide the correct caller info
+	defaultDepth = 3
 )
 
 // Level represents the logging level type enumeration.
@@ -35,55 +37,62 @@ type Level int
 type Logger struct {
 	showRoutineID bool
 	loggingLevel  Level
+	depth         int
 	mu            *sync.Mutex
+}
+
+func init() {
+	logger = NewLogger()
+	logger.depth = defaultDepth + 1 // increment this for global logger
 }
 
 // NewLogger instantiates and returns a new Logger struct.
 func NewLogger() *Logger {
 	return &Logger{
 		loggingLevel: DebugLevel,
-		mu: &sync.Mutex{},
+		mu:           &sync.Mutex{},
+		depth:        defaultDepth,
 	}
 }
 
 // Debugf is for debug level logging events.
 func (l *Logger) Debugf(format string, args ...interface{}) {
-	l.writeOutputf(DebugLevel, format, args...)
+	l.writeOutputf(l.depth, DebugLevel, format, args...)
 }
 
 // Infof is for high granularity logging events.
 func (l *Logger) Infof(format string, args ...interface{}) {
-	l.writeOutputf(InfoLevel, format, args...)
+	l.writeOutputf(l.depth, InfoLevel, format, args...)
 }
 
 // Warnf is for unexpected and recoverable events.
 func (l *Logger) Warnf(format string, args ...interface{}) {
-	l.writeOutputf(WarnLevel, format, args...)
+	l.writeOutputf(l.depth, WarnLevel, format, args...)
 }
 
 // Errorf is for unexpected and unrecoverable fatal events.
 func (l *Logger) Errorf(format string, args ...interface{}) {
-	l.writeOutputf(ErrorLevel, format, args...)
+	l.writeOutputf(l.depth, ErrorLevel, format, args...)
 }
 
 // Debug is for debug level logging events.
 func (l *Logger) Debug(args ...interface{}) {
-	l.writeOutput(DebugLevel, args...)
+	l.writeOutput(l.depth, DebugLevel, args...)
 }
 
 // Info is for high granularity logging events.
 func (l *Logger) Info(args ...interface{}) {
-	l.writeOutput(InfoLevel, args...)
+	l.writeOutput(l.depth, InfoLevel, args...)
 }
 
 // Warn is for unexpected and recoverable events.
 func (l *Logger) Warn(args ...interface{}) {
-	l.writeOutput(WarnLevel, args...)
+	l.writeOutput(l.depth, WarnLevel, args...)
 }
 
 // Error is for unexpected and unrecoverable fatal events.
 func (l *Logger) Error(args ...interface{}) {
-	l.writeOutput(ErrorLevel, args...)
+	l.writeOutput(l.depth, ErrorLevel, args...)
 }
 
 // SetLevel sets the current logging output level.
@@ -125,8 +134,8 @@ func (l *Logger) getGoroutineID() (uint64, error) {
 	return strconv.ParseUint(string(b), 10, 64)
 }
 
-func (l *Logger) retrieveCallInfo() string {
-	pc, file, line, _ := runtime.Caller(3)
+func (l *Logger) retrieveCallInfo(depth int) string {
+	pc, file, line, _ := runtime.Caller(depth)
 	// get full path to file
 	fullpath := runtime.FuncForPC(pc).Name()
 	// strip out vendor path if it exists
@@ -160,27 +169,27 @@ func (l *Logger) sprint(args ...interface{}) string {
 	return msg[:len(msg)-1]
 }
 
-func (l *Logger) writeOutputf(level Level, format string, args ...interface{}) {
+func (l *Logger) writeOutputf(depth int, level Level, format string, args ...interface{}) {
 	if level < l.loggingLevel {
 		return
 	}
 	l.mu.Lock()
 	writer := bufio.NewWriter(output)
 	msg := fmt.Sprintf(format, args...)
-	defer l.mu.Unlock()    // then unlock
+	defer l.mu.Unlock()  // then unlock
 	defer writer.Flush() // flush first
-	writer.Write(formatLog(level, msg, l.retrieveCallInfo()))
+	writer.Write(formatLog(level, msg, l.retrieveCallInfo(depth)))
 }
 
-func (l *Logger) writeOutput(level Level, args ...interface{}) {
+func (l *Logger) writeOutput(depth int, level Level, args ...interface{}) {
 	if level < l.loggingLevel {
 		return
 	}
 	l.mu.Lock()
 	writer := bufio.NewWriter(output)
-	defer l.mu.Unlock()    // then unlock
+	defer l.mu.Unlock()  // then unlock
 	defer writer.Flush() // flush first
-	writer.Write(formatLog(level, l.sprint(args...), l.retrieveCallInfo()))
+	writer.Write(formatLog(level, l.sprint(args...), l.retrieveCallInfo(depth)))
 }
 
 // Debugf is for debug level logging events.
