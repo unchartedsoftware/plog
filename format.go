@@ -3,6 +3,7 @@ package log
 import (
 	"bytes"
 	"fmt"
+	"regexp"
 	"runtime"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 var (
 	isTerminal = isatty.IsTerminal(output.Fd())
 	isColored  = isTerminal && (runtime.GOOS != "windows")
+	re         = regexp.MustCompile("[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))")
 )
 
 func formatLog(level Level, msg string, fileinfo string) []byte {
@@ -69,12 +71,16 @@ func printColored(b *bytes.Buffer, level Level, msg string, fileinfo string) {
 		ansi.Reset)
 }
 
+func stripColor(str string) string {
+	return re.ReplaceAllString(str, "")
+}
+
 func printUncolored(b *bytes.Buffer, level Level, msg string, fileinfo string) {
 	levelText := getLevelString(level)
 	// write log message to buffer
 	fmt.Fprintf(b, "[ %s ] [%s] %s (%s)",
 		time.Now().Format(time.Stamp),
 		levelText,
-		msg,
+		stripColor(msg),
 		fileinfo)
 }

@@ -18,9 +18,9 @@ var (
 )
 
 const (
-	// DebugLevel logging is for development level logging.
+	// DebugLevel logging is for high granularity development level logging.
 	DebugLevel Level = 1
-	// InfoLevel logging is for high granularity development logging events.
+	// InfoLevel logging is for logging events.
 	InfoLevel Level = 2
 	// WarnLevel logging is for unexpected and recoverable events.
 	WarnLevel Level = 3
